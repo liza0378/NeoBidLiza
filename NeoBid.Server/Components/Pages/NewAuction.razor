@@ -1,0 +1,102 @@
+﻿@page "/newauction"
+@using Microsoft.EntityFrameworkCore
+@using NeoBid.Server.Auth
+@using NeoBid.Server.Data
+@using NeoBid.Server.Data.Helpers
+@inject IDbContextFactory<ApplicationDbContext> dbFactory;
+@inject AuthenticationService AuthenticationService;
+@inject NavigationManager NavigationManager;
+
+<PageTitle>New Auction</PageTitle>
+
+<section class="py-3 text-center container">
+    <div class="row py-lg-3">
+        <div class="col-lg-6 col-md-8 mx-auto">
+            <h1 class="fw-light">New Auction</h1>
+        </div>
+    </div>
+</section>
+
+<div class="album py-5 bg-body-tertiary">
+    <div class="container">
+        <div style="max-width: 400px;" class="m-auto">
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @_message
+                </div>
+            }
+            <div class="mb-3">
+                <label class="form-label">Name</label>
+                <input type="email" class="form-control" placeholder="Ancient Roman Ring" @bind-value=@_name>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" rows="3" @onchange=@((e) =>_description = e.Value?.ToString())></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">First bid</label>
+                <input type="number" class="form-control" @bind-value=@_firstBid>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Avatar</label>
+                <InputFile OnChange="@LoadFiles" class="form-control" type="file" accept=".jpg" />
+            </div>
+
+            <button type="button" class="btn btn-primary m-auto d-block" @onclick=@(CreateAuctionClick)>Submit</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _message;
+    private string _name;
+    private string _description;
+    private byte[] _image;
+    private int _firstBid;
+    private NeoBid.Server.Data.Entities.Account? _account;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _account = await AuthenticationService.GetCurrentAccount();
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        _message = string.Empty;
+
+        try
+        {
+            using var memoryStream = new MemoryStream();
+
+            await e.File.OpenReadStream().CopyToAsync(memoryStream);
+
+            _image = memoryStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private async Task CreateAuctionClick()
+    {
+        _message = string.Empty;
+        try
+        {
+            await AuctionHelper.CreateAuction(dbFactory, _name, _description, _image, _firstBid, _account.Id);
+            NavigationManager.NavigateTo("/myauctions");
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+}

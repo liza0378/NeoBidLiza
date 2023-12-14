@@ -1,0 +1,70 @@
+﻿@page "/mybids"
+@using Microsoft.EntityFrameworkCore
+@using NeoBid.Server.Auth
+@using NeoBid.Server.Data
+@using NeoBid.Server.Data.Entities
+@using NeoBid.Server.Data.Enums
+@using NeoBid.Server.Data.Helpers
+@inject IDbContextFactory<ApplicationDbContext> dbFactory;
+@inject AuthenticationService AuthenticationService;
+@inject NavigationManager NavigationManager;
+
+<PageTitle>My bids</PageTitle>
+
+<section class="py-3 text-center container">
+    <div class="row py-lg-3">
+        <div class="col-lg-6 col-md-8 mx-auto">
+            <h1 class="fw-light">My Bids</h1>
+        </div>
+    </div>
+</section>
+
+<div class="album py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+            @if (_items is not null)
+            {
+                @foreach (var item in _items)
+                {
+                    <div class="col">
+                        <div class="card shadow-sm">
+                            <img src="data:image/jpeg;base64, @Convert.ToBase64String(item.Image)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
+                            <div class="card-body">
+                                <h5 class="card-title">@item.Name</h5>
+                                <p class="card-text">@item.Description</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="btn-group">
+                                        <a href="/viewauction/@item.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                                    </div>
+                                    <small class="text-body-secondary">@item.CreatedOn.ToShortDateString()</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="spinner-grow text-dark" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Auction> _items;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var account = await AuthenticationService.GetCurrentAccount();
+
+            _items = await AuctionHelper.GetAuctionsWithMyBids(dbFactory, account.Id);
+
+            InvokeAsync(StateHasChanged);
+        }
+    }
+}

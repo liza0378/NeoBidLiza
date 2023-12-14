@@ -1,0 +1,94 @@
+﻿@page "/myauctions"
+@using Microsoft.EntityFrameworkCore
+@using NeoBid.Server.Auth
+@using NeoBid.Server.Data
+@using NeoBid.Server.Data.Entities
+@using NeoBid.Server.Data.Helpers
+@inject IDbContextFactory<ApplicationDbContext> dbFactory;
+@inject AuthenticationService AuthenticationService;
+
+<PageTitle>My Auctions</PageTitle>
+
+<section class="py-3 text-center container">
+    <div class="row py-lg-3">
+        <div class="col-lg-6 col-md-8 mx-auto">
+            <h1 class="fw-light">My Auctions</h1>
+        </div>
+    </div>
+</section>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+    <div class="alert alert-danger" role="alert">
+        @_message
+    </div>
+}
+
+
+<div class="album py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+            @if (_autions is not null)
+            {
+                @foreach (var item in _autions)
+                {
+                    <div class="col">
+                        <div class="card shadow-sm">
+                            <img src="data:image/jpeg;base64, @Convert.ToBase64String(item.Image)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
+                            <div class="card-body">
+                                <h5 class="card-title">@item.Name</h5>
+                                <p class="card-text">@item.Description</p>
+                                <p class="card-text">CreatedOn: @item.CreatedOn</p>
+                                <p class="card-text">State: @item.State</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="btn-group">
+                                        <a type="button" class="btn btn-sm btn-outline-secondary" href="/editauction/@item.Id">Edit</a>
+                                        <a type="button" class="btn btn-sm btn-outline-secondary" href="/viewauction/@item.Id">View</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="spinner-grow text-dark" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _message;
+
+    private List<Auction> _autions;
+
+    private NeoBid.Server.Data.Entities.Account? _account;
+
+    private async Task Refresh()
+    {
+        _message = string.Empty;
+        try
+        {
+            _account = await AuthenticationService.GetCurrentAccount();
+
+            _autions = await AuctionHelper.GetAuctionsByAccount(dbFactory, _account.Id);
+        }
+        catch(Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Refresh();
+            InvokeAsync(StateHasChanged);
+        }
+    }
+}

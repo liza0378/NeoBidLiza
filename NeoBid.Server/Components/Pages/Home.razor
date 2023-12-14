@@ -1,0 +1,110 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using NeoBid.Server.Data
+@using NeoBid.Server.Data.DTOs
+@using NeoBid.Server.Data.Entities
+@inject IDbContextFactory<ApplicationDbContext> dbFactory;
+@using static Data.Helpers.AuctionHelper;
+
+<PageTitle>Home</PageTitle>
+
+
+<section class="py-3 text-center container">
+    <div class="row py-lg-3">
+        <div class="col-lg-6 col-md-8 mx-auto">
+            <h1 class="fw-light">NeoBid</h1>
+            <div>
+                <span class="badge rounded-pill text-bg-primary">Modern</span>
+                <span class="badge rounded-pill text-bg-secondary">Fast</span>
+                <span class="badge rounded-pill text-bg-success">Anonimous</span>
+                <span class="badge rounded-pill text-bg-danger">Secure</span>
+                <span class="badge rounded-pill text-bg-warning">Free</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="album custom-category-tool bg-body-tertiary">
+    <div class="container">
+        <div class="row gy-2 gx-3 m-3 align-items-center justify-content-center">
+            <div class="col-auto">
+                <div class="input-group">
+                    <div class="input-group-text">Search</div>
+                    <input type="text" class="form-control" @bind="_filter.Search">
+                </div>
+            </div>
+
+            <div class="col-auto">
+                <div class="input-group">
+                    <div class="input-group-text">From</div>
+                    <input type="datetime-local" class="form-control" @bind="_filter.From">
+                </div>
+            </div>
+
+            <div class="col-auto">
+                <div class="input-group">
+                    <div class="input-group-text">To</div>
+                    <input type="datetime-local" class="form-control" @bind="_filter.To">
+                </div>
+            </div>
+
+            <div class="col-auto">
+                <button type="submit" class="btn my-custom-button m-auto d-block" @onclick=@Refresh>Refresh</button>
+            </div>
+        </div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+            @if(_items is not null)
+            {
+                @foreach (var item in _items)
+                {
+                    <div class="col">
+                        <div class="card shadow-sm">
+                            <img src="data:image/jpeg;base64, @Convert.ToBase64String(item.Image)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
+                            <div class="card-body">
+                                <h5 class="card-title">@item.Name</h5>
+                                <p class="card-text">@item.Description</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="btn-group">
+                                        <AuthorizeView>
+                                            <Authorized>
+                                                <a href="/viewauction/@item.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                                            </Authorized>
+                                        </AuthorizeView>
+                                    </div>
+                                    <small class="text-body-secondary">@item.CreatedOn.ToShortDateString()</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="spinner-grow text-dark" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Auction> _items;
+
+    private AuctionFilterDto _filter = new()
+    {
+        From = DateTime.Now.AddDays(-7),
+        To = DateTime.Now
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        _items = await GetAuctionsForHome(dbFactory, _filter);
+    }
+}

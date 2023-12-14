@@ -1,0 +1,84 @@
+﻿@page "/signup"
+@using Microsoft.EntityFrameworkCore
+@using NeoBid.Server.Auth
+@using NeoBid.Server.Data
+@using NeoBid.Server.Data.Helpers
+@inject IDbContextFactory<ApplicationDbContext> dbFactory;
+@inject AuthenticationService AuthenticationService;
+@inject NavigationManager NavigationManager;
+
+<PageTitle>Sign Up</PageTitle>
+
+<section class="py-5 text-center container">
+    <div class="row py-lg-3">
+        <div class="col-lg-6 col-md-8 mx-auto">
+            <h1 class="fw-light">Sign In</h1>
+        </div>
+    </div>
+</section>
+
+<div class="album py-5 bg-body-tertiary">
+    <div class="container">
+        <div style="max-width: 400px;" class="m-auto">
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @_message
+                </div>
+            }
+            <div class="mb-3">
+                <label class="form-label">Full name</label>
+                <input type="text" class="form-control" placeholder="john Smith" @bind-value=@_fullname>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email address</label>
+                <input type="email" class="form-control" placeholder="name@example.com" @bind-value=@_login>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" @bind-value=@_password>
+                <div class="form-text">
+                    Your password must be 8-20 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji.
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Avatar</label>
+                <InputFile OnChange="@LoadFiles" class="form-control" type="file" accept=".jpg" />
+            </div>
+            <button type="button" class="btn btn-primary m-auto d-block" @onclick=@(SignUpClick)>Submit</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _login;
+    private string _password;
+    private string _message;
+    private string _fullname;
+    private byte[] _avatar;
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        using var memoryStream = new MemoryStream();
+
+        await e.File.OpenReadStream().CopyToAsync(memoryStream);
+
+        _avatar = memoryStream.ToArray();
+    }
+
+    private async Task SignUpClick()
+    {
+        _message = string.Empty;
+
+        try
+        {
+            await AccountHelper.SignUp(dbFactory, _login, _password, _fullname, _avatar);
+
+            NavigationManager.NavigateTo("/signin");
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+}

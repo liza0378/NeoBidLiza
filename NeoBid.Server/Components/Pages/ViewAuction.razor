@@ -1,0 +1,188 @@
+﻿@page "/viewauction/{id:guid}"
+@implements IDisposable
+@using Microsoft.EntityFrameworkCore
+@using NeoBid.Server.Auth
+@using NeoBid.Server.Data
+@using NeoBid.Server.Data.Entities
+@using NeoBid.Server.Data.Enums
+@using NeoBid.Server.Data.Helpers
+@inject IDbContextFactory<ApplicationDbContext> dbFactory;
+@inject AuthenticationService AuthenticationService;
+@inject NavigationManager NavigationManager;
+
+<PageTitle>View Auction</PageTitle>
+
+<section class="py-5 text-center container">
+    <div class="row py-lg-5">
+        <div class="col-lg-6 col-md-8 mx-auto">
+            <h1 class="fw-light">@_auction?.Name</h1>
+        </div>
+    </div>
+</section>
+
+<div class="album py-5 bg-body-tertiary">
+    <div class="container">
+        <div class="row">
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @_message
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_warning))
+            {
+                <div class="alert alert-warn" role="alert">
+                    @_message
+                </div>
+            }
+            @if (_auction is not null)
+            {
+                <div class="col-sm-4">
+                    <h4>Bids</h4>
+                    @foreach(var bid in _auction.Bids.OrderByDescending(x=>x.Amount))
+                    {
+                        <div class="card shadow-sm mb-3">
+                            <img src="data:image/jpeg;base64, @Convert.ToBase64String(bid.Account.Avatar)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
+                            <div class="card-body">
+                                <h5 class="card-title">@bid.Account.FullName</h5>
+                                <p class="card-text">@bid.Amount</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-body-secondary">@bid.CreatedOn.ToShortDateString()</small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-8">
+                    <h4>The item</h4>
+                    <div class="card shadow-sm">
+                        <img src="data:image/jpeg;base64, @Convert.ToBase64String(_auction.Image)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
+                        <div class="card-body">
+                            <h5 class="card-title">@_auction.Name</h5>
+                            <p class="card-text">@_auction.Description</p>
+                            <p class="card-text">Initial bid: @_auction.FirstBid</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick=@(()=>_showBidField=!_showBidField)>Bid</button>
+                                </div>
+                                <small class="text-body-secondary">@_auction.CreatedOn.ToShortDateString()</small>
+                                <small class="text-body-secondary">@GetTimeRemaining(_auction.CreatedOn)</small>
+                            </div>
+                        </div>
+                    </div>
+                    @if(_showBidField)
+                    {
+                        <div class="card shadow-sm p-3">
+                            <div class="mb-3">
+                                <label class="form-label">Amount</label>
+                                <input type="number" class="form-control" @bind-value=@_amount>
+                                <div class="form-text">
+                                    You will have to pay your bid in case of success.
+                                </div>
+                            </div>
+                            <button type="button" class="btn my-custom-button m-auto d-block" @onclick=@(MakeBid)>Confirm</button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="spinner-grow text-dark" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Auction? _auction;
+
+    private string? _message;
+
+    private string? _warning;
+
+    private bool _showBidField;
+
+    private int _amount;
+
+    private NeoBid.Server.Data.Entities.Account? _account;
+
+    private Timer timer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _account = await AuthenticationService.GetCurrentAccount();
+            InvokeAsync(StateHasChanged);
+
+            timer = new Timer(Callback, null, 0, 1000);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        _auction = await AuctionHelper.GetAuctionByIdForView(dbFactory, Id);
+
+        if (_auction is null)
+        {
+            _warning = "Auction does not exist.";
+            return;
+        }
+    }
+
+    private async Task MakeBid()
+    {
+        _message = string.Empty;
+
+        if(_amount < _auction.FirstBid)
+        {
+            _message = "Your bid should be bigger or equal to auction Initial bid.";
+            return;
+        }
+
+        var maxBid = _auction.Bids.MaxBy(x => x.Amount);
+
+        if (maxBid != null && _amount <= maxBid.Amount)
+        {
+            _message = "Your bid should be bigger than the last one.";
+            return;
+        }
+
+        await BidHelper.CreateBid(dbFactory, _account.Id, _auction.Id, _amount);
+
+        _showBidField = false;
+
+        await Refresh();
+    }
+
+    private void Callback(object state)
+    {
+        InvokeAsync(() => StateHasChanged()); // Re-render the component
+    }
+
+    private string GetTimeRemaining(DateTime createdOn)
+    {
+        var timeLeft = TimeSpan.FromHours(1) - (DateTime.Now - createdOn);
+        if (timeLeft.Ticks < 0)
+        {
+            return "Time expired";
+        }
+
+        return $"{timeLeft:mm\\:ss}"; // Format as "minutes:seconds"
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

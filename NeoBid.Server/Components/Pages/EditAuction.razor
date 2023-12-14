@@ -1,0 +1,170 @@
+﻿@page "/editauction/{id:guid}"
+@using Microsoft.EntityFrameworkCore
+@using NeoBid.Server.Auth
+@using NeoBid.Server.Data
+@using NeoBid.Server.Data.Entities
+@using NeoBid.Server.Data.Enums
+@using NeoBid.Server.Data.Helpers
+@inject IDbContextFactory<ApplicationDbContext> dbFactory;
+@inject NavigationManager NavigationManager;
+
+<PageTitle>Edit Auction</PageTitle>
+
+<section class="py-3 text-center container">
+    <div class="row py-lg-3">
+        <div class="col-lg-6 col-md-8 mx-auto">
+            <h1 class="fw-light">Edit Auction</h1>
+        </div>
+    </div>
+</section>
+
+<div class="album py-5 bg-body-tertiary">
+    <div class="container">
+        <div style="max-width: 400px;" class="m-auto">
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @_message
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_warning))
+            {
+                <div class="alert alert-warn" role="alert">
+                    @_message
+                </div>
+            }
+            @if(_auction is not null)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="email" class="form-control" placeholder="Ancient Roman Ring" @bind-value=@_auction.Name>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" rows="3" value="@_auction.Description" @onchange=@((e) =>_auction.Description = e.Value?.ToString())></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">First bid</label>
+                    <input type="number" class="form-control" @bind-value=@_auction.FirstBid>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Avatar</label>
+                    <InputFile OnChange="@LoadFiles" class="form-control" type="file" accept=".jpg" />
+                </div>
+
+                <div class="btn-group">
+                    @if (!_isReadOnly)
+                    {
+                        <button type="button" class="btn btn-primary m-auto d-block" @onclick=@(EditAuctionClick)>Submit</button>
+
+                        <button type="button" class="btn btn-success m-auto d-block" @onclick=@(OpenAuctionClick)>Open</button>
+                    }
+
+                    <button type="button" class="btn btn-danger m-auto d-block" @onclick=@(DeleteAuctionClick)>Delete</button>
+                </div>
+
+                
+            }
+            else
+            {
+                <div class="spinner-grow text-dark" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Auction? _auction;
+
+    private string? _message;
+
+    private string? _warning;
+
+    private bool _isReadOnly => _auction is null ? true : _auction.State != AuctionState.Draft;
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        _message = string.Empty;
+
+        try
+        {
+            using var memoryStream = new MemoryStream();
+
+            await e.File.OpenReadStream().CopyToAsync(memoryStream);
+
+            _auction.Image = memoryStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _auction = await AuctionHelper.GetAuctionById(dbFactory, Id);
+
+        if (_auction is null)
+        {
+            _warning = "Auction does not exist.";
+            return;
+        }
+
+        if (_isReadOnly)
+        {
+            _warning = "Only Draft Auctions are allowed to be edited.";
+        }
+    }
+
+    private async Task OpenAuctionClick()
+    {
+        _message = string.Empty;
+
+        try
+        {
+            _auction.State = AuctionState.Open;
+            await AuctionHelper.EditAuction(dbFactory, _auction);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private async Task EditAuctionClick()
+    {
+        _message = string.Empty;
+
+        try
+        {
+            await AuctionHelper.EditAuction(dbFactory, _auction);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private async Task DeleteAuctionClick()
+    {
+        _message = string.Empty;
+
+        try
+        {
+            await AuctionHelper.DeleteAuction(dbFactory, _auction);
+            NavigationManager.NavigateTo("/myauctions");
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+}
