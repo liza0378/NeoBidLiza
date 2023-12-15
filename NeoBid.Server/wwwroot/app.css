@@ -44,10 +44,6 @@ footer {
     border-color: #2b3035;
 }
 
-.card {
-    max-width: 16rem;
-}
-
 .custom-category-tool {
     padding-top: 1rem !important;
     padding-bottom: 3rem !important;
@@ -55,4 +51,8 @@ footer {
 
 .card-text {
     color: #828282;
+}
+
+.card-img, .card-img-bottom, .card-img-top {
+    height: auto;
 }

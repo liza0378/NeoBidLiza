@@ -42,8 +42,13 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Avatar</label>
+                <label class="form-label">Image</label>
                 <InputFile OnChange="@LoadFiles" class="form-control" type="file" accept=".jpg" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Ends On</label>
+                <input type="datetime-local" class="form-control" @bind-value=@_endsOn min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")">
             </div>
 
             <button type="button" class="btn btn-primary m-auto d-block" @onclick=@(CreateAuctionClick)>Submit</button>
@@ -57,6 +62,7 @@
     private string _description;
     private byte[] _image;
     private int _firstBid;
+    private DateTime _endsOn;
     private NeoBid.Server.Data.Entities.Account? _account;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -91,7 +97,7 @@
         _message = string.Empty;
         try
         {
-            await AuctionHelper.CreateAuction(dbFactory, _name, _description, _image, _firstBid, _account.Id);
+            await AuctionHelper.CreateAuction(dbFactory, _name, _description, _image, _firstBid, _account.Id, _endsOn);
             NavigationManager.NavigateTo("/myauctions");
         }
         catch (Exception ex)

@@ -15,5 +15,7 @@
         public virtual Auction Auction { get; set; }
 
         public virtual Account Account { get; set; }
+
+        public virtual Order Order { get; set; }
     }
 }

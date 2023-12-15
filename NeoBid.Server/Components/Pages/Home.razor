@@ -72,7 +72,7 @@
                                             </Authorized>
                                         </AuthorizeView>
                                     </div>
-                                    <small class="text-body-secondary">@item.CreatedOn.ToShortDateString()</small>
+                                    <small class="text-body-secondary">@item.CreatedOn.ToString() - @item.EndsOn.ToString()</small>
                                 </div>
                             </div>
                         </div>
@@ -95,7 +95,7 @@
     private AuctionFilterDto _filter = new()
     {
         From = DateTime.Now.AddDays(-7),
-        To = DateTime.Now
+        To = DateTime.Now.AddDays(7)
     };
 
     protected override async Task OnInitializedAsync()

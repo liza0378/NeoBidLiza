@@ -14,6 +14,8 @@ namespace NeoBid.Server.Data.Entities
 
         public DateTime CreatedOn { get; set; }
 
+        public DateTime EndsOn { get; set; }
+
         public AuctionState State { get; set; }
 
         public Guid OwnerId { get; set; }

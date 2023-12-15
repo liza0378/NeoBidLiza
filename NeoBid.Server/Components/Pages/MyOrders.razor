@@ -1,4 +1,4 @@
-﻿@page "/myauctions"
+﻿@page "/myorders"
 @using Microsoft.EntityFrameworkCore
 @using NeoBid.Server.Auth
 @using NeoBid.Server.Data
@@ -7,12 +7,12 @@
 @inject IDbContextFactory<ApplicationDbContext> dbFactory;
 @inject AuthenticationService AuthenticationService;
 
-<PageTitle>My Auctions</PageTitle>
+<PageTitle>My Orders</PageTitle>
 
 <section class="py-3 text-center container">
     <div class="row py-lg-3">
         <div class="col-lg-6 col-md-8 mx-auto">
-            <h1 class="fw-light">My Auctions</h1>
+            <h1 class="fw-light">My Orders</h1>
         </div>
     </div>
 </section>
@@ -28,24 +28,17 @@
 <div class="album py-5 bg-body-tertiary">
     <div class="container">
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-            @if (_autions is not null)
+            @if (_items is not null)
             {
-                @foreach (var item in _autions)
+                @foreach (var item in _items)
                 {
                     <div class="col">
                         <div class="card shadow-sm">
-                            <img src="data:image/jpeg;base64, @Convert.ToBase64String(item.Image)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
+                            <img src="data:image/jpeg;base64, @Convert.ToBase64String(item.Bid.Auction.Image)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
                             <div class="card-body">
-                                <h5 class="card-title">@item.Name</h5>
-                                <p class="card-text">@item.Description</p>
-                                <p class="card-text">@item.CreatedOn.ToString() - @item.EndsOn.ToString()</p>
-                                <p class="card-text">State: @item.State</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="btn-group">
-                                        <a type="button" class="btn btn-sm btn-outline-secondary" href="/editauction/@item.Id">Edit</a>
-                                        <a type="button" class="btn btn-sm btn-outline-secondary" href="/viewauction/@item.Id">View</a>
-                                    </div>
-                                </div>
+                                <h5 class="card-title">Auction: @item.Bid.Auction.Name</h5>
+                                <p class="card-text">Address: @item.Address</p>
+                                <p class="card-text">Created: @item.CreatedOn.ToLongDateString()</p>
                             </div>
                         </div>
                     </div>
@@ -64,7 +57,7 @@
 @code {
     private string _message;
 
-    private List<Auction> _autions;
+    private List<Order> _items;
 
     private NeoBid.Server.Data.Entities.Account? _account;
 
@@ -75,12 +68,13 @@
         {
             _account = await AuthenticationService.GetCurrentAccount();
 
-            _autions = await AuctionHelper.GetAuctionsByAccount(dbFactory, _account.Id);
+            _items = await OrderHelper.GetOrders(dbFactory, _account.Id);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _message = ex.Message;
         }
+        InvokeAsync(StateHasChanged);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -88,7 +82,6 @@
         if (firstRender)
         {
             await Refresh();
-            InvokeAsync(StateHasChanged);
         }
     }
 }

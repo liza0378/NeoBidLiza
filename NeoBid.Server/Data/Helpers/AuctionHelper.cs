@@ -7,29 +7,30 @@ namespace NeoBid.Server.Data.Helpers
 {
     public static class AuctionHelper
     {
-        public static async Task<List<Auction>> GetAuctionsByHighestBidder(IDbContextFactory<ApplicationDbContext> dbFactory, Guid accountId)
+        public static async Task<List<(Auction Auction, Bid Bid)>> GetAuctionsByHighestBidder(IDbContextFactory<ApplicationDbContext> dbFactory, Guid accountId)
         {
             using var context = await dbFactory.CreateDbContextAsync();
 
             var auctions = await context.Auctions
-                .Where(a => a.Bids.Any()) // Ensure there are bids
+                .Include(x => x.Bids)
+                .ThenInclude(x => x.Order)
+                .Where(a => a.Bids.Any() && a.State == AuctionState.Finished)
                 .Select(a => new
                 {
                     Auction = a,
                     MaxBid = a.Bids.OrderByDescending(b => b.Amount).FirstOrDefault()
                 })
                 .Where(a => a.MaxBid.AccountId == accountId)
-                .Select(a => a.Auction)
                 .ToListAsync();
 
-            return auctions;
+            return auctions.Select(x=>(x.Auction, x.MaxBid)).ToList();
         }
 
         public static async Task<List<Auction>> GetAuctionsForHome(IDbContextFactory<ApplicationDbContext> dbFactory, AuctionFilterDto filter)
         {
             using var context = await dbFactory.CreateDbContextAsync();
 
-            var query = context.Auctions.Where(x=>x.CreatedOn >= filter.From && x.CreatedOn <= filter.To && x.State == AuctionState.Open);
+            var query = context.Auctions.Where(x => x.EndsOn >= filter.From && x.EndsOn <= filter.To && x.State == AuctionState.Open);
 
             var list = await query.OrderByDescending(x=>x.CreatedOn).ToListAsync();
 
@@ -90,7 +91,7 @@ namespace NeoBid.Server.Data.Helpers
             await context.SaveChangesAsync();
         }
 
-        public static async Task CreateAuction(IDbContextFactory<ApplicationDbContext> dbFactory, string name, string description, byte[] image, int firstBid, Guid ownerId)
+        public static async Task CreateAuction(IDbContextFactory<ApplicationDbContext> dbFactory, string name, string description, byte[] image, int firstBid, Guid ownerId, DateTime endOn)
         {
             using var context = await dbFactory.CreateDbContextAsync();
 
@@ -102,7 +103,8 @@ namespace NeoBid.Server.Data.Helpers
                 CreatedOn = DateTime.Now,
                 FirstBid = firstBid,
                 OwnerId = ownerId,
-                State = Enums.AuctionState.Draft
+                State = Enums.AuctionState.Draft,
+                EndsOn = endOn
             };
 
             context.Auctions.Add(account);

@@ -2,6 +2,7 @@
 @using NeoBid.Server.Auth
 @inherits LayoutComponentBase
 @inject AuthenticationService AuthenticationService;
+@inject NavigationManager NavigationManager;
 
 <nav class="navbar navbar-expand-lg bg-body-tertiary">
     <div class="container-fluid">
@@ -29,10 +30,13 @@
                             <a class="nav-link" href="/mywins">My Wins</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="/myorders">My Orders</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="/account">Account</a>
                         </li>
                         <li class="nav-item">
-                            <button class="btn nav-link" @onclick=AuthenticationService.SignOut>Sign Out</button>
+                            <button class="btn nav-link" @onclick=SignOut>Sign Out</button>
                         </li>
                     </Authorized>
                     <NotAuthorized>
@@ -55,11 +59,7 @@
 
 <footer class="text-body-secondary py-5">
     <div class="container">
-        <p class="float-end mb-1">
-            <a href="#">Back to top</a>
-        </p>
-        <p class="mb-1">Album example is © Bootstrap, but please download and customize it for yourself!</p>
-        <p class="mb-0">New to Bootstrap? <a href="/">Visit the homepage</a> or read our <a href="/docs/5.3/getting-started/introduction/">getting started guide</a>.</p>
+        <p>&copy; 2023 NeoBid. All Rights Reserved.</p>
     </div>
 </footer>
 
@@ -68,3 +68,11 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private async Task SignOut()
+    {
+        await AuthenticationService.SignOut();
+        NavigationManager.NavigateTo("/");
+    }     
+}

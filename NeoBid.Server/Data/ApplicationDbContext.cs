@@ -15,6 +15,8 @@ namespace NeoBid.Server.Data
 
         public DbSet<Bid> Bids { get; set; }
 
+        public DbSet<Order> Orders { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Account>()

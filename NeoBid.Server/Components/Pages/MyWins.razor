@@ -21,6 +21,25 @@
 
 <div class="album py-5 bg-body-tertiary">
     <div class="container">
+        @if(_chosenBid.HasValue)
+        {
+            <div class="row">
+                <div class="col-12 p-4">
+                    <h4>@_chosenBid.Value.Auction.Name</h4>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <input type="text" class="form-control" @bind-value=@_address>
+                        <div class="form-text">
+                            Address of delivery. The payment will be processed after delivery.
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center align-items-center">
+                        <button type="button" class="btn btn-secondary m-auto d-block" @onclick=@(CreateOrder)>Submit</button>
+                    </div>
+                </div>
+            </div>
+        }
+        
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
             @if (!string.IsNullOrEmpty(_message))
             {
@@ -34,16 +53,20 @@
                 {
                     <div class="col">
                         <div class="card shadow-sm">
-                            <img src="data:image/jpeg;base64, @Convert.ToBase64String(item.Image)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
+                            <img src="data:image/jpeg;base64, @Convert.ToBase64String(item.Auction.Image)" class="bd-placeholder-img card-img-top" width="100%" height="225" />
                             <div class="card-body">
-                                <h5 class="card-title">@item.Name</h5>
-                                <p class="card-text">@item.Description</p>
+                                <h5 class="card-title">@item.Auction.Name</h5>
+                                <p class="card-text">@item.Auction.Description</p>
                                 <div class="d-flex justify-content-between align-items-center">
 
 
-                                    <small class="text-body-secondary">@item.CreatedOn.ToShortDateString()</small>
+                                    <small class="text-body-secondary">@item.Auction.CreatedOn.ToString() - @item.Auction.EndsOn.ToString()</small>
                                 </div>
-                                <a class="btn my-custom-button m-auto d-block">Buy</a>
+
+                                @if (item.Bid.Order is null)
+                                {
+                                    <button class="btn btn-primary m-auto d-block" @onclick=@(()=>_chosenBid = item)>Buy</button>
+                                }
 
                             </div>
                         </div>
@@ -61,27 +84,53 @@
 </div>
 
 @code {
-    private List<Auction> _items;
+    private List<(Auction Auction, Bid Bid)> _items;
 
     private string _message;
+
+    private (Auction Auction, Bid Bid)? _chosenBid;
+
+    private string _address;
+
+    private async Task CreateOrder()
+    {
+        _message = string.Empty;
+        try
+        {
+            await OrderHelper.CreateOrder(dbFactory, _chosenBid.Value.Bid.Id, _address);
+
+            _chosenBid = null;
+
+            await Refresh();
+        }
+        catch(Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            _message = string.Empty;
-            try
-            {
-                var account = await AuthenticationService.GetCurrentAccount();
-
-                _items = await AuctionHelper.GetAuctionsByHighestBidder(dbFactory, account.Id);
-            }
-            catch(Exception ex)
-            {
-                _message = ex.Message;
-            }
-
-            InvokeAsync(StateHasChanged);
+            await Refresh();
         }
+    }
+
+    private async Task Refresh()
+    {
+        _message = string.Empty;
+        try
+        {
+            var account = await AuthenticationService.GetCurrentAccount();
+
+            _items = await AuctionHelper.GetAuctionsByHighestBidder(dbFactory, account.Id);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+
+        InvokeAsync(StateHasChanged);
     }
 }

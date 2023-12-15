@@ -14,18 +14,22 @@
     </div>
 </section>
 
-@if(_account is not null)
-{
-    <div class="card m-auto mb-5" style="width: 18rem;">
-        <img src="data:image/jpeg;base64, @Convert.ToBase64String(_account.Avatar)" class="card-img-top" alt="...">
-        <div class="card-body">
-            <h5 class="card-title">@_account.FullName</h5>
-            <p class="card-text">@_account.Email</p>
-            <a href="#" class="btn my-custom-button m-auto d-block">Change password</a>
+<div class="album custom-category-tool bg-body-tertiary">
+    <div class="container">
+        @if (_account is not null)
+        {
+            <div class="card m-auto mb-5" style="width: 18rem;">
+                <img src="data:image/jpeg;base64, @Convert.ToBase64String(_account.Avatar)" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">@_account.FullName</h5>
+                    <p class="card-text">@_account.Email</p>
+                    <a href="#" class="btn my-custom-button m-auto d-block">Change password</a>
 
-        </div>
+                </div>
+            </div>
+        }
     </div>
-}
+</div>
 
 @code {
     private NeoBid.Server.Data.Entities.Account? _account;

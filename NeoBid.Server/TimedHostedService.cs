@@ -21,7 +21,7 @@ namespace NeoBid.Server
 
             await DoWork();
 
-            using PeriodicTimer timer = new(TimeSpan.FromMinutes(5));
+            using PeriodicTimer timer = new(TimeSpan.FromMinutes(1));
 
             try
             {
@@ -42,9 +42,9 @@ namespace NeoBid.Server
             {
                 using var context = await _dbFactory.CreateDbContextAsync();
 
-                var oneHourAgo = DateTime.Now - TimeSpan.FromMinutes(60);
+                var currentTime = DateTime.Now;
 
-                await context.Auctions.Where(x => x.CreatedOn <= oneHourAgo).ExecuteUpdateAsync(x => x.SetProperty(y => y.State, Data.Enums.AuctionState.Finished));
+                await context.Auctions.Where(x => x.EndsOn <= currentTime).ExecuteUpdateAsync(x => x.SetProperty(y => y.State, Data.Enums.AuctionState.Finished));
             }
             catch (Exception ex)
             {

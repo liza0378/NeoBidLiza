@@ -12,8 +12,8 @@
 
 <PageTitle>View Auction</PageTitle>
 
-<section class="py-5 text-center container">
-    <div class="row py-lg-5">
+<section class="py-3 text-center container">
+    <div class="row py-lg-3">
         <div class="col-lg-6 col-md-8 mx-auto">
             <h1 class="fw-light">@_auction?.Name</h1>
         </div>
@@ -47,7 +47,7 @@
                                 <h5 class="card-title">@bid.Account.FullName</h5>
                                 <p class="card-text">@bid.Amount</p>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-body-secondary">@bid.CreatedOn.ToShortDateString()</small>
+                                    <small class="text-body-secondary">@bid.CreatedOn.ToString()</small>
                                 </div>
                             </div>
                         </div>
@@ -65,8 +65,8 @@
                                 <div class="btn-group">
                                     <button type="button" class="btn btn-sm btn-outline-secondary" @onclick=@(()=>_showBidField=!_showBidField)>Bid</button>
                                 </div>
-                                <small class="text-body-secondary">@_auction.CreatedOn.ToShortDateString()</small>
-                                <small class="text-body-secondary">@GetTimeRemaining(_auction.CreatedOn)</small>
+                                <small class="text-body-secondary">@_auction.CreatedOn.ToString() - @_auction.EndsOn.ToString()</small>
+                                <small class="text-body-secondary">@GetTimeRemaining(_auction.EndsOn)</small>
                             </div>
                         </div>
                     </div>
@@ -170,15 +170,15 @@
         InvokeAsync(() => StateHasChanged()); // Re-render the component
     }
 
-    private string GetTimeRemaining(DateTime createdOn)
+    private string GetTimeRemaining(DateTime endsOn)
     {
-        var timeLeft = TimeSpan.FromHours(1) - (DateTime.Now - createdOn);
+        var timeLeft = endsOn - DateTime.Now;
         if (timeLeft.Ticks < 0)
         {
             return "Time expired";
         }
 
-        return $"{timeLeft:mm\\:ss}"; // Format as "minutes:seconds"
+        return $"{timeLeft:dd\\:hh\\:mm\\:ss}"; // Format as "minutes:seconds"
     }
 
     public void Dispose()
